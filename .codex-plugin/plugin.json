@@ -1,0 +1,36 @@
+{
+  "name": "dsh-product",
+  "version": "0.1.0+codex.20260820024912",
+  "description": "Web-aware, evidence-backed product delivery from opportunity handoff through POC, MVP, beta, PMF and growth handoff.",
+  "author": {
+    "name": "Local developer"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh-plugin",
+    "product-management",
+    "poc",
+    "mvp",
+    "pmf",
+    "product-delivery"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "\u4ea7\u54c1\u843d\u5730",
+    "shortDescription": "\u4ece POC \u5230 PMF \u7684\u8bc1\u636e\u9a71\u52a8\u4ea7\u54c1\u843d\u5730\u65b9\u6cd5\u8bba\u3002",
+    "longDescription": "dsh-product combines public internet research with local product context to turn a validated opportunity handoff into an evidence-backed product brief, POC, MVP, beta, PMF review, explicit continue-or-kill decision and growth handoff. It does not replace demand discovery or growth analytics.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [
+      "Analyze",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "\u68c0\u67e5\u6211\u7684\u4ea7\u54c1\u9879\u76ee\u51c6\u5907\u5ea6\uff0c\u53ea\u544a\u8bc9\u6211\u5f53\u524d\u5904\u4e8e\u54ea\u4e00\u5173\u3001\u7f3a\u4ec0\u4e48\u8bc1\u636e\u548c\u63a5\u4e0b\u6765\u6700\u5c0f\u52a8\u4f5c\u3002",
+      "\u67e5\u8be2\u8fd9\u4e2a\u4ea7\u54c1\u65b9\u5411\u6700\u65b0\u7684\u6280\u672f\u3001\u7ade\u54c1\u3001\u5b9a\u4ef7\u548c\u53d1\u5e03\u8d44\u8baf\uff0c\u4fdd\u7559\u53ef\u6838\u9a8c\u7684\u6765\u6e90\uff0c\u4e0d\u628a\u641c\u7d22\u70ed\u5ea6\u5f53\u4f5c\u9700\u6c42\u8bc1\u660e\u3002",
+      "\u628a\u8fd9\u4e2a\u5df2\u786e\u8ba4\u7684\u673a\u4f1a\u8f6c\u6210\u4ea7\u54c1 Brief\u3001POC \u8ba1\u5212\u548c MVP \u8303\u56f4\uff0c\u4e0d\u91cd\u590d\u505a\u9700\u6c42\u53d1\u73b0\u3002",
+      "\u590d\u76d8\u8fd9\u4efd PMF \u8bc1\u636e\uff0c\u6309\u7528\u6237\u5206\u7fa4\u533a\u5206\u4e8b\u5b9e\u3001\u5047\u8bbe\u3001\u7f3a\u53e3\u548c\u7ee7\u7eed/\u8c03\u6574/\u6682\u505c\u5efa\u8bae\u3002",
+      "\u6839\u636e\u660e\u786e\u7684\u51b3\u7b56\u95e8\u5224\u65ad\u4ea7\u54c1\u73b0\u5728\u5e94\u8be5\u66f4\u8fdb\u4e00\u6b65\u3001\u8c03\u6574\u3001\u6682\u7f13\u3001\u653e\u5f03\u8fd8\u662f\u6269\u5927\u6295\u5165\uff0c\u5e76\u8bf4\u660e\u8bc1\u636e\u548c\u4e0b\u4e00\u6b21\u51b3\u7b56\u65f6\u673a\u3002"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+- insert:
+    - id: dsh-product
+      name: dsh-product
+      config:
+        defaultRoot: "."
+        reportDir: ".dsh-product/reports"
+        maxFiles: 500
+        maxRows: 100000
+        maxFileBytes: 1048576
+        maxTextChars: 180000
+        maxResultChars: 50000
+        defaultLanguage: "zh-CN"
+        defaultTimezone: "Asia/Shanghai"
+        maxResearchQueries: 5
+        maxResearchResults: 5
+        maxResearchChars: 30000
+        requestTimeoutMs: 30000
