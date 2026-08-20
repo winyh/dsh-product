@@ -1,5 +1,9 @@
 # dsh-product
 
+English | [中文](./README.zh.md)
+
+`dsh-product` 是一个“互联网资讯查询 + 本地项目上下文”的 DeepSeek Harness 插件，用于把已经确认的产品机会转化为可验证、可交付、可迭代的产品。
+
 `dsh-product` is a web-aware DeepSeek Harness plugin that combines public internet research with local product context to turn a validated opportunity handoff into a shippable, observable and iterated product.
 
 Its workflow is:
@@ -16,14 +20,14 @@ It complements `dsh-idea` and `dsh-growth`:
 - `dsh-geo` and `dsh-growth` own the marketing stage: discoverability, acquisition, activation and growth operations.
 - `dsh-sales` owns monetization execution: qualification, closing, expansion and renewal.
 
-## 插件定位与协作导航
+## Plugin Positioning and Collaboration Navigation
 
-`dsh-product` 是六插件体系里的“产品交付与 PMF 层”：把已经有证据支持的机会，转成能交付、能观察、能迭代的产品，并用 PMF 证据决定继续、调整或暂停。
+`dsh-product` is the product-delivery and PMF layer in the six-plugin system. It turns an evidence-backed opportunity into a shippable, observable and iterated product, using PMF evidence to decide whether to continue, adjust or pause.
 
-- **主责：** 产品策略、用户/问题定义、POC、MVP、Beta/发布门槛、PMF 复盘和增长交接。
-- **主要输入：** [dsh-idea](../dsh-idea/README.md) 的机会交接、用户与场景证据，以及 [dsh-business](../dsh-business/README.md) 的商业约束和 [dsh-growth](../dsh-growth/README.md) 的行为数据。
-- **主要输出：** 产品 Brief、范围边界、验证计划、发布检查、PMF 评审和增长 handoff，供商业化、销售和增长继续使用。
-- **不负责：** 不替代机会发现、定价与盈利设计、销售跟进、增长运营或网站内容执行；代码/设计文件/CRM 记录也不由本插件直接创建。
+- **Owns:** Product strategy, user/problem definition, POC, MVP, beta/release gates, PMF reviews and growth handoffs.
+- **Inputs:** Opportunity handoffs and user/context evidence from [dsh-idea](../dsh-idea/README.md), commercial constraints from [dsh-business](../dsh-business/README.md) and behavior data from [dsh-growth](../dsh-growth/README.md).
+- **Outputs:** Product briefs, scope boundaries, validation plans, release checks, PMF reviews and growth handoffs for commercial strategy, sales and growth.
+- **Does not own:** Opportunity discovery, pricing/profitability design, sales follow-up, growth operations or website content execution. It does not create code, design files or CRM records.
 
 ## Positioning Architecture: Commercial Strategy Layer + Four-Stage Core Flow
 
@@ -32,16 +36,25 @@ The six plugins work together to turn a real demand signal into a deliverable pr
 ```mermaid
 flowchart TB
     S["dsh-business<br/>Commercial strategy layer<br/>Value · model · pricing · profit"]
-    A["Demand<br/>dsh-idea"] --> B["Product<br/>dsh-product"]
-    B --> C["Marketing<br/>dsh-geo + dsh-growth"]
-    C --> D["Monetization execution<br/>dsh-sales"]
-    S -.-> A
-    S -.-> B
-    S -.-> C
-    S -.-> D
-    D --> F["Deals · renewals · revenue · cost feedback"]
-    F -->|Product iteration| B
-    F -->|New demand / opportunities| A
+
+    subgraph MAIN["Four-stage core flow"]
+        direction LR
+        A["1. Demand<br/>dsh-idea"] --> B["2. Product<br/>dsh-product"]
+        B --> C["3. Marketing<br/>dsh-geo + dsh-growth"]
+        C --> D["4. Monetization execution<br/>dsh-sales"]
+    end
+
+    S -. "Sets commercial direction and guardrails" .-> A
+    D --> R["Feedback<br/>Deals · renewals · revenue · cost"]
+    R -->|Product iteration| B
+    R -->|New demand / opportunities| A
+
+    classDef strategy fill:#FFF4D6,stroke:#B7791F,color:#5C4500
+    classDef stage fill:#E8F1FF,stroke:#3366CC,color:#173A7A
+    classDef feedback fill:#E8F7EE,stroke:#2F855A,color:#1C4532
+    class S strategy
+    class A,B,C,D stage
+    class R feedback
 ```
 
 This plugin owns the product stage: after [dsh-idea](../dsh-idea/README.md) proves that a problem is worth testing, it defines what to build, how small to start and how to measure the result. [dsh-business](../dsh-business/README.md) supplies commercial constraints; [dsh-geo](../dsh-geo/README.md) and [dsh-growth](../dsh-growth/README.md) take the product into marketing; and [dsh-sales](../dsh-sales/README.md) returns close, loss, renewal and unmet-need evidence.
@@ -68,4 +81,4 @@ This plugin owns the product stage: after [dsh-idea](../dsh-idea/README.md) prov
 
 The plugin reads local Markdown and bounded CSV/JSON/JSONL evidence, can query public product information, preserves lineage and uses preview-plus-confirmation for file writes. Web research does not automatically send local files, cookies or login state to a provider. It does not create code, design files, CRM records or external campaigns.
 
-See [README.zh.md](./README.zh.md) for the Chinese workflow and examples.
+See the [Chinese README](./README.zh.md) for the Chinese workflow and examples.
