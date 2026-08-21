@@ -64,6 +64,8 @@ flowchart TB
 - 销售 / 增长交接：输出产品结果、价值证据、主指标、护栏指标、未决问题和建议动作，分别交给 `dsh-sales` 与 `dsh-growth`。
 
 `product_sales_handoff` 只有在产品决策为 `proceed` 或 `scale` 时才允许形成产品销售交接，版本为 `1.0`，并携带价值证据、Proof points、交付边界和商业依赖；它不设置价格，也不扩大产品承诺。
+
+`commercialContext` 可以附上 `dsh-business` 的 `commercial-handoff` 或其来源路径。产品范围和包装可以使用这些商业约束，但它们不等同于需求或 PMF 证据。
 - 预览后安全写回 Markdown，使用路径边界和版本保护。
 
 ## 工具

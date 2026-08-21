@@ -81,6 +81,8 @@ This plugin owns the product stage: after [dsh-idea](../dsh-idea/README.md) prov
 
 `product_sales_handoff` emits the versioned `product-sales-handoff` contract only after a `proceed` or `scale` product decision. It carries value evidence, proof points, delivery boundaries and commercial dependencies to `dsh-sales`; it never sets a price or expands the product promise.
 
+Use the `commercialContext` field to attach a `dsh-business` `commercial-handoff` or its source path. Product scope and packaging may use those constraints, but they remain separate from demand and PMF evidence.
+
 The plugin reads local Markdown and bounded CSV/JSON/JSONL evidence, can query public product information, preserves lineage and uses preview-plus-confirmation for file writes. Web research does not automatically send local files, cookies or login state to a provider. It does not create code, design files, CRM records or external campaigns.
 
 See the [Chinese README](./README.zh.md) for the Chinese workflow and examples.
