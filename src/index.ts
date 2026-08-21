@@ -32,9 +32,11 @@ export function apply(ctx: Context, config: ProductConfig): void {
   const fs = (ctx as unknown as { fs: FileSystemLike }).fs
   if (!ctx.registry.has(webFetchHttp)) {
     void ctx.plugin(webFetchHttp, {
-      maxBodyChars: config.maxResearchChars,
+      // Keep the shared provider defaults identical across dsh-idea, dsh-product and dsh-geo.
+      // Each plugin applies its own tighter research/result limits after fetching.
+      maxBodyChars: 100_000,
       maxResponseBytes: 5_000_000,
-      timeoutMs: config.requestTimeoutMs,
+      timeoutMs: 30_000,
       maxRedirects: 5,
     })
   }

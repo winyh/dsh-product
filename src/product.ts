@@ -16,6 +16,7 @@ import type {
   ProductBrief,
   ProductBriefInput,
   ProductStage,
+  ProductSalesHandoff,
   ReleaseCheck,
   ReleaseReview,
   Row,
@@ -694,6 +695,113 @@ export function buildGrowthHandoff(input: {
     markdownList(input.recommendedActions),
     '',
     '## 交接下一步',
+    markdownList(nextActions),
+    '',
+  ].join('\n')
+  return handoff
+}
+
+export function buildProductSalesHandoff(input: {
+  productName: string
+  productDecision: 'proceed' | 'scale'
+  targetBuyer: string
+  customerProblem: string
+  desiredOutcome: string
+  valueEvidence: string[]
+  proofPoints: string[]
+  requiredCapabilities: string[]
+  implementationConstraints: string[]
+  commercialContext: string[]
+  commercialQuestions: string[]
+  nextCustomerAction: string
+  owner?: string
+  source?: string
+}): ProductSalesHandoff {
+  const warnings: string[] = []
+  if (input.valueEvidence.length === 0) warnings.push('缺少价值证据；销售不得把产品描述当成客户价值证明。')
+  if (input.proofPoints.length === 0) warnings.push('缺少可核验 proof points；需要补充结果、客户原话或使用证据。')
+  if (input.commercialContext.length === 0) warnings.push('缺少商业上下文；报价、成本和折扣边界必须由 dsh-business 或用户提供。')
+  if (!input.nextCustomerAction.trim()) warnings.push('缺少客户下一步动作；当前交接不能直接进入成交推进。')
+  const status: ProductSalesHandoff['status'] = warnings.length === 0 ? 'ready' : 'partial'
+  const nextActions = status === 'ready'
+    ? ['交给 dsh-sales 做资格判断和商机推进；不要在销售插件内重新定义产品范围。', '由 dsh-business 核对价格底线、成本基础、付款和折扣授权。']
+    : ['补齐价值证据、proof points、商业上下文和客户下一步动作，再交给 dsh-sales。']
+  const generatedAt = new Date().toISOString()
+  const handoff: ProductSalesHandoff = {
+    handoffVersion: '1.0',
+    artifactType: 'product-sales-handoff',
+    handoffFrom: 'dsh-product',
+    handoffTo: 'dsh-sales',
+    generatedAt,
+    status,
+    productDecision: input.productDecision,
+    productName: input.productName,
+    targetBuyer: input.targetBuyer,
+    customerProblem: input.customerProblem,
+    desiredOutcome: input.desiredOutcome,
+    valueEvidence: input.valueEvidence,
+    proofPoints: input.proofPoints,
+    requiredCapabilities: input.requiredCapabilities,
+    implementationConstraints: input.implementationConstraints,
+    commercialContext: input.commercialContext,
+    commercialQuestions: input.commercialQuestions,
+    nextCustomerAction: input.nextCustomerAction,
+    owner: input.owner,
+    source: input.source,
+    warnings,
+    nextActions,
+    markdown: '',
+  }
+  handoff.markdown = [
+    [
+      '---',
+      'handoffVersion: "1.0"',
+      'artifactType: product-sales-handoff',
+      'handoffFrom: dsh-product',
+      'handoffTo: dsh-sales',
+      `status: ${status}`,
+      `productDecision: ${input.productDecision}`,
+      ...(input.owner ? [`owner: ${yaml(input.owner)}`] : []),
+      ...(input.source ? [`source: ${yaml(input.source)}`] : []),
+      '---',
+      '',
+      `# ${input.productName} 产品销售交接`,
+      '',
+    ].join('\n'),
+    `# ${input.productName} 产品销售交接`,
+    '',
+    '## 交接结论',
+    `- 产品决策：${input.productDecision}`,
+    `- 目标买方：${input.targetBuyer || '待补充'}`,
+    `- 客户问题：${input.customerProblem || '待补充'}`,
+    `- 期望结果：${input.desiredOutcome || '待补充'}`,
+    `- 客户下一步：${input.nextCustomerAction || '待补充'}`,
+    '',
+    '## 价值证据',
+    markdownList(input.valueEvidence),
+    '',
+    '## Proof points',
+    markdownList(input.proofPoints),
+    '',
+    '## 交付边界',
+    '**必须具备**',
+    markdownList(input.requiredCapabilities),
+    '',
+    '**约束**',
+    markdownList(input.implementationConstraints),
+    '',
+    '## 商业上下文',
+    markdownList(input.commercialContext),
+    '',
+    '## 待确认商业问题',
+    markdownList(input.commercialQuestions),
+    '',
+    '## 交接纪律',
+    '- dsh-sales 负责资格判断、推进、报价审查和成交动作，不扩大产品承诺。',
+    '- 价格底线、成本基础和折扣权限必须有 dsh-business 或用户提供的证据。',
+    '',
+    '## 风险与下一步',
+    markdownList(warnings),
     markdownList(nextActions),
     '',
   ].join('\n')

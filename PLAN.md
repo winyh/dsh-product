@@ -11,6 +11,7 @@
 - Public internet research for product methods, technical feasibility, competitors, market context, regulations, pricing and release notes, with source lineage and evidence boundaries.
 - Explicit public URL scans for first-party product sources with bounded snapshots.
 - Product review, Markdown report rendering and guarded Markdown writeback.
+- Product-to-sales readiness handoff after a `proceed` or `scale` decision, with commercial dependencies kept explicit.
 
 ## Deliberate boundaries
 
@@ -24,4 +25,4 @@
 1. Add optional adapters for GitHub/Figma/project-management exports while keeping source lineage explicit across web and local evidence.
 2. Add a structured beta feedback importer that de-identifies raw feedback before analysis.
 3. Add a versioned product decision log and explicit change-impact review.
-4. Add a product-to-sales handoff artifact for B2B deal readiness without becoming a CRM.
+4. Add cross-plugin change-impact checks so handoff consumers can detect stale product evidence.

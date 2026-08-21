@@ -7,6 +7,7 @@ import {
   arrayInput,
   buildProductDecisionReview,
   buildGrowthHandoff,
+  buildProductSalesHandoff,
   buildMvpPlan,
   buildPrd,
   buildProductBrief,
@@ -385,6 +386,47 @@ export function registerProductTools(ctx: Context, config: ProductConfig, fs: Fi
     async execute(args) {
       const review = buildProductDecisionReview({ productName: args.productName, stage: productStage(args.stage), gates: decisionGates(args.gates), decisionDate: args.decisionDate, scaleReady: args.scaleReady })
       return wrapResult(review, { nextActions: review.nextActions, assumptions: review.assumptions })
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'product_sales_handoff',
+    description: 'Create a versioned product-to-sales handoff only after a proceed or scale product decision. Carries buyer problem, value evidence, proof points, delivery boundaries and commercial dependencies to dsh-sales; it does not set price or make a sales commitment.',
+    parameters: {
+      productName: { type: 'string', required: true, description: 'Product name.' },
+      productDecision: { type: 'string', required: true, enum: ['proceed', 'scale'], description: 'Decision gate that permits a sales handoff.' },
+      targetBuyer: { type: 'string', required: true, description: 'Target buyer or economic buyer.' },
+      customerProblem: { type: 'string', required: true, description: 'Customer problem supported by product evidence.' },
+      desiredOutcome: { type: 'string', required: true, description: 'Observable customer outcome.' },
+      valueEvidence: { type: 'string', required: true, description: 'JSON array or newline-separated value evidence.' },
+      proofPoints: { type: 'string', required: true, description: 'JSON array or newline-separated proof points, customer statements or observed results.' },
+      requiredCapabilities: { type: 'string', description: 'JSON array or newline-separated capabilities the sales promise must include.' },
+      implementationConstraints: { type: 'string', description: 'JSON array or newline-separated delivery, integration, compliance or timeline constraints.' },
+      commercialContext: { type: 'string', description: 'JSON array or newline-separated approved commercial context, usually from dsh-business.' },
+      commercialQuestions: { type: 'string', description: 'JSON array or newline-separated commercial questions still requiring dsh-business or customer confirmation.' },
+      nextCustomerAction: { type: 'string', required: true, description: 'One observable next customer action with owner/date if known.' },
+      owner: { type: 'string', description: 'Handoff owner.' },
+      source: { type: 'string', description: 'Source product decision or PMF artifact path.' },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      const handoff = buildProductSalesHandoff({
+        productName: args.productName,
+        productDecision: args.productDecision as 'proceed' | 'scale',
+        targetBuyer: args.targetBuyer,
+        customerProblem: args.customerProblem,
+        desiredOutcome: args.desiredOutcome,
+        valueEvidence: arrayInput(args.valueEvidence, 'valueEvidence'),
+        proofPoints: arrayInput(args.proofPoints, 'proofPoints'),
+        requiredCapabilities: arrayInput(args.requiredCapabilities, 'requiredCapabilities'),
+        implementationConstraints: arrayInput(args.implementationConstraints, 'implementationConstraints'),
+        commercialContext: arrayInput(args.commercialContext, 'commercialContext'),
+        commercialQuestions: arrayInput(args.commercialQuestions, 'commercialQuestions'),
+        nextCustomerAction: args.nextCustomerAction,
+        owner: args.owner,
+        source: args.source,
+      })
+      return wrapResult(handoff, { lineage: args.source ? [{ source: args.source }] : [], nextActions: handoff.nextActions })
     },
   }))
 

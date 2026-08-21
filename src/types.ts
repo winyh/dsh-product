@@ -324,6 +324,32 @@ export interface GrowthHandoff {
   markdown: string
 }
 
+export interface ProductSalesHandoff {
+  handoffVersion: '1.0'
+  artifactType: 'product-sales-handoff'
+  handoffFrom: 'dsh-product'
+  handoffTo: 'dsh-sales'
+  generatedAt: string
+  status: 'ready' | 'partial'
+  productDecision: 'proceed' | 'scale'
+  productName: string
+  targetBuyer: string
+  customerProblem: string
+  desiredOutcome: string
+  valueEvidence: string[]
+  proofPoints: string[]
+  requiredCapabilities: string[]
+  implementationConstraints: string[]
+  commercialContext: string[]
+  commercialQuestions: string[]
+  nextCustomerAction: string
+  owner?: string
+  source?: string
+  warnings: string[]
+  nextActions: string[]
+  markdown: string
+}
+
 export interface ProductOnboardingDimension {
   id: ProductStage
   label: string
