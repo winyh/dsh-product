@@ -21,15 +21,12 @@ import type {
   ReleaseReview,
   Row,
 } from './types.js'
+import { createArtifactId } from './artifacts.js'
 
 function yaml(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map((item) => String(item).replace(/]/g, '\\]')).join(', ')}]`
   if (value === undefined || value === null) return ''
   return String(value).replace(/\r?\n/g, ' ')
-}
-
-function artifactSlug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'unknown'
 }
 
 function arrayInput(value: string | undefined, label: string): string[] {
@@ -731,7 +728,7 @@ export function buildProductSalesHandoff(input: {
     ? ['交给 dsh-sales 做资格判断和商机推进；不要在销售插件内重新定义产品范围。', '由 dsh-business 核对价格底线、成本基础、付款和折扣授权。']
     : ['补齐价值证据、proof points、商业上下文和客户下一步动作，再交给 dsh-sales。']
   const generatedAt = new Date().toISOString()
-  const artifactId = `dsh-product-sales-${artifactSlug(input.productName)}-${generatedAt.slice(0, 10)}`
+  const artifactId = createArtifactId({ artifactType: 'product-sales-handoff', productName: input.productName, source: input.source, productDecision: input.productDecision, targetBuyer: input.targetBuyer, customerProblem: input.customerProblem, desiredOutcome: input.desiredOutcome, valueEvidence: input.valueEvidence })
   const handoff: ProductSalesHandoff = {
     schemaVersion: '1.0',
     artifactId,

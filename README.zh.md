@@ -6,6 +6,8 @@
 
 六插件公开协作契约：[SUITE.md](https://github.com/winyh/dsh-business/blob/main/SUITE.md)。
 
+`product_artifact_review` 校验产品交接工件；`product_feedback_close` 将销售或 Beta 反馈绑定到动作、负责人、截止日期和验证状态。
+
 它不替代 `dsh-idea` 的需求发现，也不替代 `dsh-sales` 的成交推进或 `dsh-growth` 的增长与收入分析。
 
 ## 定位：产品交付与 PMF 层

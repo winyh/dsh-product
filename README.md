@@ -8,6 +8,12 @@ English | [中文](./README.zh.md)
 
 Public six-plugin collaboration contract: [SUITE.md](https://github.com/winyh/dsh-business/blob/main/SUITE.md).
 
+## 协作可靠与反馈闭环
+
+`product_artifact_review` 校验产品交接工件；`product_feedback_close` 将销售或 Beta 反馈绑定到具体动作、负责人、截止日期和验证状态，避免“写了文档就算完成”。
+
+`product_artifact_review` validates product handoffs; `product_feedback_close` binds sales or beta feedback to an action, owner, due date and explicit verification state instead of treating documentation as completion.
+
 Its workflow is:
 
 ```text

@@ -12,7 +12,7 @@ describe('beta feedback and decision artifacts', () => {
   it('creates a versioned decision log and change impact review', () => {
     const log = buildProductDecisionLog({ productName: 'Demo', stage: 'mvp', decision: 'proceed', rationale: '核心任务完成', evidence: ['5/6 users completed'], owner: 'product' })
     expect(log.schemaVersion).toBe('1.0')
-    expect(log.artifactId).toContain('demo-mvp')
+    expect(log.artifactId).toMatch(/^dsh-product-product-decision-log-[a-f0-9]{12}$/)
     const impact = buildChangeImpactReview({ productName: 'Demo', before: { scope: ['core'] }, after: { scope: ['core', 'export'] } })
     expect(impact.changed).toBe(true)
     expect(impact.impacts[0]?.added).toContain('export')

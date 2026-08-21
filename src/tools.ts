@@ -22,6 +22,7 @@ import {
 import { resultEnvelope, jsonValue, renderResult, resultSchema, type ResultLineage } from './output.js'
 import { renderProductReport } from './reports.js'
 import { readProductNote, scanProductVault } from './vault.js'
+import { appendArtifactAudit, attachArtifactMetadata, contentHash, reviewArtifact } from './artifacts.js'
 import { scanProductSources, searchProductSources } from './web.js'
 import type { DecisionGateStatus, FileSystemLike, PocRisk, ProductConfig, ProductDecision, ProductDecisionGate, ProductDecisionReview, ProductResearchPurpose, ProductReviewResult, ProductStage, ReleaseCheck } from './types.js'
 import type { ProductWebLike } from './web.js'
@@ -34,7 +35,7 @@ function wrapResult(value: unknown, options: { lineage?: ResultLineage[]; assump
   const warnings = typeof value === 'object' && value !== null && 'warnings' in value && Array.isArray(value.warnings)
     ? value.warnings.filter((warning): warning is string => typeof warning === 'string')
     : []
-  return resultEnvelope({ data: jsonValue(value), warnings, assumptions: options.assumptions, lineage: options.lineage, nextActions: options.nextActions })
+  return resultEnvelope({ data: jsonValue(attachArtifactMetadata(value, { staleAfterDays: 60 })), warnings, assumptions: options.assumptions, lineage: options.lineage, nextActions: options.nextActions })
 }
 
 function parseObject(value: string, label: string): Record<string, unknown> {
@@ -575,6 +576,51 @@ export function registerProductTools(ctx: Context, config: ProductConfig, fs: Fi
   }))
 
   ctx.tools.register(defineTool({
+    name: 'product_feedback_close',
+    description: 'Turn a sales or beta feedback artifact into an owned product action. It preserves the source artifact and never marks work verified without explicit status.',
+    parameters: {
+      feedbackJson: { type: 'string', required: true, description: 'JSON returned by sales_feedback_handoff or product_beta_feedback_import.' },
+      action: { type: 'string', required: true, description: 'Concrete product action or decision.' },
+      owner: { type: 'string', required: true, description: 'Responsible owner.' },
+      dueDate: { type: 'string', description: 'Optional ISO due date.' },
+      status: { type: 'string', required: true, enum: ['open', 'accepted', 'rejected', 'implemented', 'verified'], description: 'Explicit closure status.' },
+      evidence: { type: 'string', description: 'Evidence for implementation or verification.' },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      let value: unknown
+      try { value = JSON.parse(args.feedbackJson) as unknown } catch (error) { throw new Error(`feedbackJson must be valid JSON: ${error instanceof Error ? error.message : String(error)}`) }
+      const source = typeof value === 'object' && value !== null && 'data' in value ? (value as { data: unknown }).data : value
+      const review = reviewArtifact(source)
+      const record = typeof source === 'object' && source !== null ? source as Record<string, unknown> : {}
+      const sourceType = typeof record.artifactType === 'string' ? record.artifactType : 'unknown'
+      const warnings = [...review.warnings]
+      if (!['sales-feedback-handoff', 'beta-feedback-import'].includes(sourceType)) warnings.push(`来源工件类型为 ${sourceType}，不是标准销售或 Beta 反馈。`)
+      if (args.status === 'verified' && !args.evidence?.trim()) warnings.push('verified 状态必须提供 evidence。')
+      const status = review.status === 'blocked' ? 'blocked' : args.status === 'verified' && !args.evidence?.trim() ? 'partial' : args.status
+      const nextActions = status === 'verified' ? ['把已验证结果回传 dsh-sales 或 dsh-growth，检查反馈是否减少或指标是否改善。'] : ['由 owner 执行动作，完成后再次调用并提供证据，不要仅凭文档存在标记完成。']
+      return wrapResult({ artifactType: 'product-feedback-closure', generatedAt: new Date().toISOString(), sourceArtifactId: record.artifactId, sourceArtifactType: sourceType, status, action: args.action.trim(), owner: args.owner.trim(), ...(args.dueDate?.trim() ? { dueDate: args.dueDate.trim() } : {}), ...(args.evidence?.trim() ? { evidence: args.evidence.trim() } : {}), warnings, nextActions }, { nextActions })
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'product_artifact_review',
+    description: 'Validate a product artifact before it becomes a sales or growth input. Checks schema, stable ID and evidence freshness without changing files.',
+    parameters: {
+      artifactJson: { type: 'string', required: true, description: 'JSON returned by a plugin tool.' },
+      expectedType: { type: 'string', description: 'Optional expected artifactType.' },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      let value: unknown
+      try { value = JSON.parse(args.artifactJson) as unknown } catch (error) { throw new Error(`artifactJson must be valid JSON: ${error instanceof Error ? error.message : String(error)}`) }
+      const data = typeof value === 'object' && value !== null && 'data' in value ? (value as { data: unknown }).data : value
+      const review = reviewArtifact(data, args.expectedType?.trim() || undefined)
+      return wrapResult({ artifactType: 'product-artifact-review', generatedAt: new Date().toISOString(), ...review }, { nextActions: review.nextActions })
+    },
+  }))
+
+  ctx.tools.register(defineTool({
     name: 'product_report',
     description: 'Render a product_review result into a shareable Markdown report. Reads the supplied JSON only and does not write files.',
     parameters: {
@@ -609,7 +655,9 @@ export function registerProductTools(ctx: Context, config: ProductConfig, fs: Fi
       }
       await fs.writeText(target, args.content, { kind: 'replaceIfVersion', version: info.version }, exec.signal)
       ctx.emit('product/report-applied', { path: args.path })
-      return wrapResult({ status: 'applied', path: args.path, changed: args.content !== current, applied: true, guarded: true }, { lineage: [{ source: args.path }] })
+      let audit: unknown
+      try { audit = await appendArtifactAudit(fs, config.defaultRoot, { action: 'apply', path: args.path, beforeHash: contentHash(current), afterHash: contentHash(args.content), approved: true }, exec.signal) } catch (error) { audit = { status: 'audit-failed', warning: error instanceof Error ? error.message : String(error) } }
+      return wrapResult({ status: 'applied', path: args.path, changed: args.content !== current, applied: true, guarded: true, audit }, { lineage: [{ source: args.path }] })
     },
   }))
 

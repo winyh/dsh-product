@@ -1,4 +1,5 @@
 import type { BetaFeedbackImportResult, ProductChangeImpactReview, ProductDecisionLog, ProductDecision, ProductStage } from './types.js'
+import { createArtifactId } from './artifacts.js'
 
 function text(value: unknown): string {
   return value === undefined || value === null ? '' : String(value).trim()
@@ -45,15 +46,11 @@ export function buildBetaFeedbackImport(input: { feedback: unknown[]; source?: s
   return { artifactType: 'beta-feedback-import', generatedAt, ...(input.source ? { source: input.source } : {}), rowsRead: input.feedback.length, rowsAccepted: records.length, records, themes, redacted: true, warnings, nextActions, markdown }
 }
 
-function idFor(productName: string, stage: string, generatedAt: string): string {
-  return `${productName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'product'}-${stage}-${generatedAt.slice(0, 10)}`
-}
-
 export function buildProductDecisionLog(input: { productName: string; stage: ProductStage; decision: ProductDecision; rationale: string; evidence: string[]; owner?: string; nextReviewDate?: string; source?: string }): ProductDecisionLog {
   const generatedAt = new Date().toISOString()
   const warnings = input.evidence.length === 0 ? ['没有提供决策证据；日志不能替代产品决策门。'] : []
   const nextActions = input.nextReviewDate ? [`在 ${input.nextReviewDate} 重新检查证据和决策。`] : ['补充下一次复盘日期和负责人。']
-  const artifactId = idFor(input.productName, input.stage, generatedAt)
+  const artifactId = createArtifactId({ artifactType: 'product-decision-log', productName: input.productName, stage: input.stage, decision: input.decision, rationale: input.rationale, evidence: input.evidence, owner: input.owner, nextReviewDate: input.nextReviewDate, source: input.source })
   const markdown = ['---', 'schemaVersion: "1.0"', 'artifactType: product-decision-log', `artifactId: ${artifactId}`, `generatedAt: ${generatedAt}`, `productName: ${JSON.stringify(input.productName)}`, `stage: ${input.stage}`, `decision: ${input.decision}`, ...(input.owner ? [`owner: ${JSON.stringify(input.owner)}`] : []), ...(input.source ? [`source: ${JSON.stringify(input.source)}`] : []), '---', `# ${input.productName} 产品决策日志`, '', `- 阶段：${input.stage}`, `- 决策：${input.decision}`, `- 理由：${input.rationale || '待补充'}`, '', '## 证据', ...(input.evidence.length > 0 ? input.evidence.map((item) => `- ${item}`) : ['- 缺失']), '', '## 下一步', ...nextActions.map((item) => `- ${item}`), ''].join('\n')
   return { artifactType: 'product-decision-log', schemaVersion: '1.0', artifactId, generatedAt, productName: input.productName, stage: input.stage, decision: input.decision, rationale: input.rationale, evidence: input.evidence, ...(input.owner ? { owner: input.owner } : {}), ...(input.nextReviewDate ? { nextReviewDate: input.nextReviewDate } : {}), ...(input.source ? { source: input.source } : {}), warnings, nextActions, markdown }
 }
