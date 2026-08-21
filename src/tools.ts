@@ -3,6 +3,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { readDataset } from './data.js'
 import { parseNote, replacementDiff } from './markdown.js'
 import { buildProductOnboarding } from './onboarding.js'
+import { buildBetaFeedbackImport, buildChangeImpactReview, buildProductDecisionLog } from './feedback.js'
 import {
   arrayInput,
   buildProductDecisionReview,
@@ -22,7 +23,7 @@ import { resultEnvelope, jsonValue, renderResult, resultSchema, type ResultLinea
 import { renderProductReport } from './reports.js'
 import { readProductNote, scanProductVault } from './vault.js'
 import { scanProductSources, searchProductSources } from './web.js'
-import type { DecisionGateStatus, FileSystemLike, PocRisk, ProductConfig, ProductDecisionGate, ProductDecisionReview, ProductResearchPurpose, ProductReviewResult, ProductStage, ReleaseCheck } from './types.js'
+import type { DecisionGateStatus, FileSystemLike, PocRisk, ProductConfig, ProductDecision, ProductDecisionGate, ProductDecisionReview, ProductResearchPurpose, ProductReviewResult, ProductStage, ReleaseCheck } from './types.js'
 import type { ProductWebLike } from './web.js'
 
 function productOutput(maxChars: number) {
@@ -34,6 +35,14 @@ function wrapResult(value: unknown, options: { lineage?: ResultLineage[]; assump
     ? value.warnings.filter((warning): warning is string => typeof warning === 'string')
     : []
   return resultEnvelope({ data: jsonValue(value), warnings, assumptions: options.assumptions, lineage: options.lineage, nextActions: options.nextActions })
+}
+
+function parseObject(value: string, label: string): Record<string, unknown> {
+  let parsed: unknown
+  try { parsed = JSON.parse(value) as unknown } catch (error) { throw new Error(`${label} must be valid JSON: ${error instanceof Error ? error.message : String(error)}`) }
+  const data = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) && 'data' in parsed ? (parsed as { data: unknown }).data : parsed
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error(`${label} must be a JSON object`)
+  return data as Record<string, unknown>
 }
 
 async function ensureInsideRoot(fs: FileSystemLike, config: ProductConfig, path: string, signal?: AbortSignal): Promise<void> {
@@ -126,6 +135,60 @@ function decisionReviewFromJson(value: string): ProductDecisionReview {
 }
 
 export function registerProductTools(ctx: Context, config: ProductConfig, fs: FileSystemLike, web: ProductWebLike): void {
+  ctx.tools.register(defineTool({
+    name: 'product_beta_feedback_import',
+    description: 'Import user-approved Beta feedback, redact common contact identifiers before analysis, and group only the redacted text into themes. It never returns raw customer rows to an external provider.',
+    parameters: {
+      feedbackJson: { type: 'string', required: true, description: 'JSON array or object with a feedback array. Each item needs text, feedback, comment or content.' },
+      source: { type: 'string', description: 'Source path or feedback export label.' },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      let parsed: unknown
+      try { parsed = JSON.parse(args.feedbackJson) as unknown } catch (error) { throw new Error(`feedbackJson must be valid JSON: ${error instanceof Error ? error.message : String(error)}`) }
+      const data = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) && 'data' in parsed ? (parsed as { data: unknown }).data : parsed
+      const feedback = Array.isArray(data) ? data : typeof data === 'object' && data !== null && 'feedback' in data ? (data as { feedback: unknown }).feedback : undefined
+      if (!Array.isArray(feedback)) throw new Error('feedbackJson must be an array or an object with a feedback array.')
+      const result = buildBetaFeedbackImport({ feedback, source: args.source })
+      return wrapResult(result, { lineage: args.source ? [{ source: args.source }] : [], nextActions: result.nextActions })
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'product_decision_log',
+    description: 'Create a versioned product decision log with an artifact id, evidence, owner and next review date. It records a decision; it does not approve release or investment by itself.',
+    parameters: {
+      productName: { type: 'string', required: true },
+      stage: { type: 'string', required: true, enum: ['handoff', 'strategy', 'poc', 'mvp', 'beta', 'pmf', 'iteration', 'growth-handoff'] },
+      decision: { type: 'string', required: true, enum: ['proceed', 'iterate', 'hold', 'abandon', 'scale'] },
+      rationale: { type: 'string', required: true },
+      evidence: { type: 'string', description: 'JSON array or newline-separated evidence.' },
+      owner: { type: 'string' },
+      nextReviewDate: { type: 'string' },
+      source: { type: 'string' },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      const result = buildProductDecisionLog({ productName: args.productName, stage: productStage(args.stage), decision: args.decision as ProductDecision, rationale: args.rationale, evidence: arrayInput(args.evidence, 'evidence'), owner: args.owner, nextReviewDate: args.nextReviewDate, source: args.source })
+      return wrapResult(result, { lineage: args.source ? [{ source: args.source }] : [], nextActions: result.nextActions })
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'product_change_impact_review',
+    description: 'Compare two product handoff or scope objects and expose added/removed capabilities, constraints, metrics and commercial context before consumers rely on stale evidence.',
+    parameters: {
+      productName: { type: 'string', required: true },
+      beforeJson: { type: 'string', required: true },
+      afterJson: { type: 'string', required: true },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      const result = buildChangeImpactReview({ productName: args.productName, before: parseObject(args.beforeJson, 'beforeJson'), after: parseObject(args.afterJson, 'afterJson') })
+      return wrapResult(result, { nextActions: result.nextActions })
+    },
+  }))
+
   ctx.tools.register(defineTool({
     name: 'product_research',
     description: 'Query current public internet information for product methods, technical feasibility, competitors, market context, regulations, pricing or release notes. Returns bounded sources and evidence boundaries; it does not perform demand discovery or treat search popularity as demand proof.',

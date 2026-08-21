@@ -6,6 +6,8 @@ English | [中文](./README.zh.md)
 
 `dsh-product` is a web-aware DeepSeek Harness plugin that combines public internet research with local product context to turn a validated opportunity handoff into a shippable, observable and iterated product.
 
+Public six-plugin collaboration contract: [SUITE.md](https://github.com/winyh/dsh-business/blob/main/SUITE.md).
+
 Its workflow is:
 
 ```text

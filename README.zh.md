@@ -4,6 +4,8 @@
 
 `dsh-product` 是一个“互联网资讯查询 + 本地项目上下文”的 DeepSeek Harness 插件，用于把已经确认的产品机会转化为可验证、可交付、可迭代的产品。
 
+六插件公开协作契约：[SUITE.md](https://github.com/winyh/dsh-business/blob/main/SUITE.md)。
+
 它不替代 `dsh-idea` 的需求发现，也不替代 `dsh-sales` 的成交推进或 `dsh-growth` 的增长与收入分析。
 
 ## 定位：产品交付与 PMF 层

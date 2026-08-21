@@ -28,6 +28,10 @@ function yaml(value: unknown): string {
   return String(value).replace(/\r?\n/g, ' ')
 }
 
+function artifactSlug(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'unknown'
+}
+
 function arrayInput(value: string | undefined, label: string): string[] {
   try { return listValue(value) } catch (error) { throw new Error(`${label}: ${error instanceof Error ? error.message : String(error)}`) }
 }
@@ -727,7 +731,10 @@ export function buildProductSalesHandoff(input: {
     ? ['交给 dsh-sales 做资格判断和商机推进；不要在销售插件内重新定义产品范围。', '由 dsh-business 核对价格底线、成本基础、付款和折扣授权。']
     : ['补齐价值证据、proof points、商业上下文和客户下一步动作，再交给 dsh-sales。']
   const generatedAt = new Date().toISOString()
+  const artifactId = `dsh-product-sales-${artifactSlug(input.productName)}-${generatedAt.slice(0, 10)}`
   const handoff: ProductSalesHandoff = {
+    schemaVersion: '1.0',
+    artifactId,
     handoffVersion: '1.0',
     artifactType: 'product-sales-handoff',
     handoffFrom: 'dsh-product',
@@ -755,6 +762,8 @@ export function buildProductSalesHandoff(input: {
   handoff.markdown = [
     [
       '---',
+      'schemaVersion: "1.0"',
+      `artifactId: ${yaml(artifactId)}`,
       'handoffVersion: "1.0"',
       'artifactType: product-sales-handoff',
       'handoffFrom: dsh-product',

@@ -325,6 +325,8 @@ export interface GrowthHandoff {
 }
 
 export interface ProductSalesHandoff {
+  schemaVersion: '1.0'
+  artifactId: string
   handoffVersion: '1.0'
   artifactType: 'product-sales-handoff'
   handoffFrom: 'dsh-product'
@@ -345,6 +347,52 @@ export interface ProductSalesHandoff {
   nextCustomerAction: string
   owner?: string
   source?: string
+  warnings: string[]
+  nextActions: string[]
+  markdown: string
+}
+
+export interface BetaFeedbackImportResult {
+  artifactType: 'beta-feedback-import'
+  generatedAt: string
+  source?: string
+  rowsRead: number
+  rowsAccepted: number
+  records: Array<{ id: string; segment?: string; text: string; themes: string[] }>
+  themes: Array<{ theme: string; count: number; examples: string[] }>
+  redacted: boolean
+  warnings: string[]
+  nextActions: string[]
+  markdown: string
+}
+
+export interface ProductDecisionLog {
+  artifactType: 'product-decision-log'
+  schemaVersion: '1.0'
+  artifactId: string
+  generatedAt: string
+  productName: string
+  stage: ProductStage
+  decision: ProductDecision
+  rationale: string
+  evidence: string[]
+  owner?: string
+  nextReviewDate?: string
+  source?: string
+  warnings: string[]
+  nextActions: string[]
+  markdown: string
+}
+
+export interface ProductChangeImpactReview {
+  artifactType: 'product-change-impact-review'
+  schemaVersion: '1.0'
+  generatedAt: string
+  productName: string
+  changed: boolean
+  impacts: Array<{ area: string; before: string[]; after: string[]; added: string[]; removed: string[] }>
+  risks: string[]
+  decision: 'review' | 'hold'
   warnings: string[]
   nextActions: string[]
   markdown: string
