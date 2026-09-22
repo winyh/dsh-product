@@ -1,5 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { handoffParameters, receiveHandoff } from './handoff-receive.js'
+import { closeProductFeedback } from './feedback-closure.js'
 import { readDataset } from './data.js'
 import { parseNote, replacementDiff } from './markdown.js'
 import { buildProductOnboarding } from './onboarding.js'
@@ -495,6 +497,38 @@ export function registerProductTools(ctx: Context, config: ProductConfig, fs: Fi
   }))
 
   ctx.tools.register(defineTool({
+    name: 'product_discoverability_handoff',
+    description: 'Hand user-approved public product facts and claim boundaries to dsh-geo. Keeps private research out of public copy; never publishes content or proves a claim.',
+    parameters: {
+      initiativeId: { type: 'string', required: true },
+      productName: { type: 'string', required: true },
+      audience: { type: 'string', required: true },
+      publicFacts: { type: 'string', required: true, description: 'Only facts explicitly approved for public use; JSON string array.' },
+      evidence: { type: 'string', required: true, description: 'Traceable evidence references; JSON string array. Do not include private document contents.' },
+      claimBoundaries: { type: 'string', required: true, description: 'Prohibited or unproven claims; JSON string array.' },
+      targetMetric: { type: 'string', required: true, description: 'Downstream observable metric, not a ranking promise.' },
+      source: { type: 'string', required: true },
+    },
+    output: productOutput(config.maxResultChars),
+    async execute(args) {
+      const lists = Object.fromEntries(['publicFacts', 'evidence', 'claimBoundaries'].map(key => {
+        const parsed: unknown = JSON.parse(args[key as 'publicFacts' | 'evidence' | 'claimBoundaries'])
+        if (!Array.isArray(parsed) || !parsed.length || !parsed.every(item => typeof item === 'string' && !!item.trim())) throw new Error(key + ' must be a non-empty string array')
+        return [key, parsed.map(item => String(item).trim())]
+      }))
+      for (const field of ['initiativeId', 'productName', 'audience', 'targetMetric', 'source'] as const) if (!args[field].trim()) throw new Error(field + ' must not be blank')
+      return wrapResult({
+        artifactType: 'product-discoverability-handoff', generatedAt: new Date().toISOString(),
+        handoffFrom: 'dsh-product', handoffTo: 'dsh-geo', status: 'ready',
+        initiativeId: args.initiativeId.trim(), productName: args.productName.trim(), audience: args.audience.trim(),
+        targetMetric: args.targetMetric.trim(), source: args.source.trim(), ...lists,
+        warnings: ['仅使用明确允许公开的事实；交接不等于发布授权，证据引用不代表可公开其正文。'],
+        nextActions: ['先由 geo_handoff_receive 接收，再制作内容 Brief，并以同一 initiativeId、contentId 和 targetMetric 交给增长测量。'],
+      })
+    },
+  }))
+
+  ctx.tools.register(defineTool({
     name: 'product_growth_handoff',
     description: 'Create a product-to-growth handoff with product outcome, evidence, primary metric, guardrails and open questions for dsh-growth. It does not perform acquisition or sales execution.',
     parameters: {
@@ -524,7 +558,7 @@ export function registerProductTools(ctx: Context, config: ProductConfig, fs: Fi
         owner: args.owner,
         source: args.source,
       })
-      return wrapResult(handoff, { lineage: args.source ? [{ source: args.source }] : [], nextActions: handoff.nextActions })
+      return wrapResult({ ...handoff, handoffFrom: 'dsh-product', handoffTo: 'dsh-growth' }, { lineage: args.source ? [{ source: args.source }] : [], nextActions: handoff.nextActions })
     },
   }))
 
@@ -577,29 +611,32 @@ export function registerProductTools(ctx: Context, config: ProductConfig, fs: Fi
 
   ctx.tools.register(defineTool({
     name: 'product_feedback_close',
-    description: 'Turn a sales or beta feedback artifact into an owned product action. It preserves the source artifact and never marks work verified without explicit status.',
+    description: 'Track owned product feedback actions and evidence-based verification. Reject stale or misrouted sources. Verified means user-reported recheck passed, not business impact or independently audited truth.',
     parameters: {
       feedbackJson: { type: 'string', required: true, description: 'JSON returned by sales_feedback_handoff or product_beta_feedback_import.' },
+      initiativeId: { type: 'string', required: true, description: 'Same initiative ID as the incoming receipt.' },
+      verificationJson: { type: 'string', description: 'For verified: JSON object with method, source, observedAt ISO timestamp and result=passed. Recheck must occur after feedback generation.' },
       action: { type: 'string', required: true, description: 'Concrete product action or decision.' },
       owner: { type: 'string', required: true, description: 'Responsible owner.' },
-      dueDate: { type: 'string', description: 'Optional ISO due date.' },
+      dueDate: { type: 'string', required: true, description: 'ISO due date for the owned action.' },
       status: { type: 'string', required: true, enum: ['open', 'accepted', 'rejected', 'implemented', 'verified'], description: 'Explicit closure status.' },
       evidence: { type: 'string', description: 'Evidence for implementation or verification.' },
     },
     output: productOutput(config.maxResultChars),
     async execute(args) {
-      let value: unknown
-      try { value = JSON.parse(args.feedbackJson) as unknown } catch (error) { throw new Error(`feedbackJson must be valid JSON: ${error instanceof Error ? error.message : String(error)}`) }
-      const source = typeof value === 'object' && value !== null && 'data' in value ? (value as { data: unknown }).data : value
-      const review = reviewArtifact(source)
-      const record = typeof source === 'object' && source !== null ? source as Record<string, unknown> : {}
-      const sourceType = typeof record.artifactType === 'string' ? record.artifactType : 'unknown'
-      const warnings = [...review.warnings]
-      if (!['sales-feedback-handoff', 'beta-feedback-import'].includes(sourceType)) warnings.push(`来源工件类型为 ${sourceType}，不是标准销售或 Beta 反馈。`)
-      if (args.status === 'verified' && !args.evidence?.trim()) warnings.push('verified 状态必须提供 evidence。')
-      const status = review.status === 'blocked' ? 'blocked' : args.status === 'verified' && !args.evidence?.trim() ? 'partial' : args.status
-      const nextActions = status === 'verified' ? ['把已验证结果回传 dsh-sales 或 dsh-growth，检查反馈是否减少或指标是否改善。'] : ['由 owner 执行动作，完成后再次调用并提供证据，不要仅凭文档存在标记完成。']
-      return wrapResult({ artifactType: 'product-feedback-closure', generatedAt: new Date().toISOString(), sourceArtifactId: record.artifactId, sourceArtifactType: sourceType, status, action: args.action.trim(), owner: args.owner.trim(), ...(args.dueDate?.trim() ? { dueDate: args.dueDate.trim() } : {}), ...(args.evidence?.trim() ? { evidence: args.evidence.trim() } : {}), warnings, nextActions }, { nextActions })
+      return wrapResult(closeProductFeedback(JSON.parse(args.feedbackJson) as unknown, args))
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'product_handoff_receive',
+    description: 'Receive a supported upstream artifact with integrity, routing and evidence checks. Produce an owned, dated receipt for one initiative; acceptance is not approval or task completion. Read-only.',
+    parameters: handoffParameters,
+    output: productOutput(config.maxResultChars),
+    async execute(args, exec) {
+      exec.signal.throwIfAborted()
+      const receipt = receiveHandoff(JSON.parse(args.artifactJson) as unknown, args)
+      return wrapResult(receipt, { nextActions: receipt.nextActions })
     },
   }))
 

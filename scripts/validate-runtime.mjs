@@ -60,6 +60,14 @@ try {
   const invalid = await invoke({ root: 42 })
   const webRead = await ctx.get('web').fetch({ url: 'https://example.com/evidence' })
   assert.equal(webRead.statusCode, 200)
+  const receipt = await tools.execute({
+    callId: 'compat-receipt', name: prefix + 'handoff_receive',
+    arguments: { artifactJson: '{}', initiativeId: 'runtime-check', owner: 'fixture-owner', action: 'review evidence',
+      dueDate: new Date(Date.now() + 86_400_000).toISOString() }, signal: new AbortController().signal,
+  })
+  assert.equal(receipt.isError, false, JSON.stringify(receipt))
+  assert.equal(receipt.value.data.status, 'blocked', 'invalid handoffs must never be accepted')
+  assert.equal(receipt.value.data.completionClaimed, false)
   const artifactReview = await tools.execute({
     callId: 'compat-artifact', name: prefix + 'artifact_review',
     arguments: { artifactJson: '{}' }, signal: new AbortController().signal,
