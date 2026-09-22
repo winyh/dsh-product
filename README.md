@@ -8,6 +8,26 @@ English | [中文](./README.zh.md)
 
 Public six-plugin collaboration contract: [SUITE.md](https://github.com/winyh/dsh-business/blob/main/SUITE.md).
 
+## DSH compatibility and installation
+
+Tested against DeepSeek Harness **0.1.5-rc.2**, the npm `latest` channel checked on 2026-09-22, with Cordis 4.0.2. Node.js must satisfy `^22.19.0 || >=24.0.0`. DSH peer packages are pinned to the tested version; other release channels need a fresh compatibility check.
+
+```sh
+npm install -g @deepseek-ai/dsh@0.1.5-rc.2
+dsh --version
+dsh plugin --profile web add github:winyh/dsh-product
+dsh --profile web --dump-config
+dsh web
+```
+
+Install into the profile you actually launch: `web` for `dsh web`, or replace it consistently with your custom profile name. Installing into `default` does not enable the plugin in `web`. Restart the running profile after an update.
+
+A GitHub source installation uses `prepare` to build the entry point. If pnpm blocks it, add the exact package key printed by pnpm to that profile's `pnpm-workspace.yaml` under `allowBuilds` and repeat the installation after reviewing the source. Pin a reviewed Git commit for reproducibility. A built tarball from `pnpm pack` can instead be installed with `dsh plugin --profile web add ./package.tgz`.
+
+The profile supplies `tools` and `fs`. It also supplies `web` and its search/fetch providers. The standard DSH base includes them; custom profiles must configure them explicitly. This plugin shares the profile's provider lifecycle, proxy and transport limits. Private `docs/` files remain excluded from Git and package contents.
+
+For maintainers, run `pnpm install --frozen-lockfile` and `pnpm run verify`. Verification includes type checking, lint, unit tests, build, package checks and `plugin:runtime:validate`: a keyless Cordis Loader test of the built plugin with real DSH services, model-visible tools, file reads, argument/output validation, cancellation and unload cleanup.
+
 ## 协作可靠与反馈闭环
 
 `product_artifact_review` 校验产品交接工件；`product_feedback_close` 将销售或 Beta 反馈绑定到具体动作、负责人、截止日期和验证状态，避免“写了文档就算完成”。

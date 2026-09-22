@@ -1,7 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-fs'
-import * as webFetchHttp from '@deepseek-ai/dsh-web-fetch-http'
 import type {} from '@deepseek-ai/dsh-web'
 import { registerProductTools } from './tools.js'
 import type { FileSystemLike, ProductConfig } from './types.js'
@@ -30,16 +29,7 @@ export const Config: Schema<ProductConfig> = Schema.object({
 
 export function apply(ctx: Context, config: ProductConfig): void {
   const fs = (ctx as unknown as { fs: FileSystemLike }).fs
-  if (!ctx.registry.has(webFetchHttp)) {
-    void ctx.plugin(webFetchHttp, {
-      // Keep the shared provider defaults identical across dsh-idea, dsh-product and dsh-geo.
-      // Each plugin applies its own tighter research/result limits after fetching.
-      maxBodyChars: 100_000,
-      maxResponseBytes: 5_000_000,
-      timeoutMs: 30_000,
-      maxRedirects: 5,
-    })
-  }
+  // The profile owns web providers; share them without taking lifecycle ownership.
   const web = (ctx as unknown as { web: ProductWebLike }).web
   registerProductTools(ctx, config, fs, web)
   console.log(`[${name}] registered product-delivery tools with web research for ${config.defaultRoot}`)
