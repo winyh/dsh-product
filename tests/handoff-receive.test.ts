@@ -35,6 +35,12 @@ describe('owned handoff receipt', () => {
       expect(receipt.nextTool).toBe(handoffRoutes[type]!.nextTool)
     })
   }
+  it('requires comparable currencies when the commercial handoff includes profitability', () => {
+    for (const [summary, status] of [[{ currency: 'CNY' }, 'accepted'], [{ currency: 'USD' }, 'blocked'], [{}, 'needs-validation']] as const) {
+      const artifact = fixture('commercial-handoff', { currency: 'CNY', profitabilitySummary: summary })
+      expect(receiveHandoff(artifact, options).status).toBe(status)
+    }
+  })
   const type = Object.keys(handoffRoutes)[0]!
   it('rejects failed calls, wrong producers, unknown types and tampered payloads', () => {
     expect(receiveHandoff({ ok: false, data: fixture(type) }, options).status).toBe('blocked')

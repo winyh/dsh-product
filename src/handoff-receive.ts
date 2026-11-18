@@ -59,6 +59,11 @@ export function receiveHandoff(value: unknown, options: ReceiveOptions) {
   if (sourceType === 'opportunity-handoff' && Object.keys(asRecord(source.validationExperiment)).length === 0) missing.push('validationExperiment')
   if (sourceType === 'product-sales-handoff' && !['proceed', 'scale'].includes(text(source.productDecision))) missing.push('productDecision')
   if (sourceType === 'product-feedback-closure' && source.status !== 'verified') missing.push('反馈尚未 verified')
+  if (sourceType === 'commercial-handoff' && source.profitabilitySummary !== undefined) {
+    const currency = text(asRecord(source.profitabilitySummary).currency)
+    if (!currency) missing.push('profitabilitySummary.currency')
+    else if (currency.toUpperCase() !== text(source.currency).toUpperCase()) issues.push('盈利复盘与报价币种不一致。')
+  }
   if (sourceType === 'sales-feedback-handoff') {
     if (!['dsh-growth'].includes(artifactDomain) && (!Array.isArray(source.feedback) || !source.feedback.length
       || !source.feedback.every(value => {
